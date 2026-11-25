@@ -6,7 +6,7 @@ It runs on a Mac on a Claude subscription. There is no server and nothing else t
 
 ```
 Notion ("Now" tasks)
-   │  weekdays 10:00, or "tasks" in the bot DM, or a task link
+   │  weekdays 10:00, or "tasks" in the bot DM, or a task link, or a task written in the DM
    ▼
 Slack DM: [Take] [Skip]
    ▼
@@ -114,6 +114,7 @@ In the bot DM:
 - **Take** takes a task, and **Skip** hides it for good.
 - `tasks` re-sends the list.
 - A Notion task link takes that task, whatever its priority.
+- Any other text is a new task. The bot answers in its thread with **Take** / **Ignore**. A reply in that thread before Take adds detail. The task then runs like a Notion one, and its text is quoted in the PR.
 - A reply in a task's thread goes into its next run:
   - after questions, it is your answers;
   - under a plan, it is feedback, and the architect re-plans;

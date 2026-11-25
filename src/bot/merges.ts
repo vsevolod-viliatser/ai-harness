@@ -21,7 +21,7 @@ export async function watchMerges(): Promise<void> {
                     [{ id: "next_phase", label: `Phase ${t.phase + 1}`, style: "primary" }]);
             } else {
                 update(id, { status: "done" });
-                await say(t, "Merged, and the task is done. Mark it Done in Notion.");
+                await say(t, `Merged, and the task is done.${t.url.startsWith("http") ? " Mark it Done in Notion." : ""}`);
             }
         }
     }

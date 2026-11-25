@@ -26,7 +26,7 @@ export function publish(taskUrl: string, task: string, t: Triage, summary: strin
     commitAndPush(branch, `fix: ${title}`, { newBranch: true });
 
     const body = [
-        `Notion: ${notionUrl(taskUrl)}`,
+        taskUrl.startsWith("http") ? `Notion: ${notionUrl(taskUrl)}` : "Task: written in Slack (the text is quoted below the summary).",
         "",
         "## Done when",
         ...t.acceptance.map((a) => `- [ ] ${a}`),
@@ -36,6 +36,7 @@ export function publish(taskUrl: string, task: string, t: Triage, summary: strin
         "",
         `Checks run before opening: the project checks and a lint ratchet. ${d.files.length} files, ${d.lines} lines.`,
         ...(extra.body ? ["", extra.body] : []),
+        ...(taskUrl.startsWith("http") ? [] : ["", "## The task as written", task.split("\n").map((l) => `> ${l}`).join("\n")]),
     ].join("\n");
     const url = must("gh", ["pr", "create", "--repo", REPO, "--draft", "--base", "main", "--head", branch, "--title", title, "--body", body]).trim();
     saveRun({ branch, taskUrl, task, triage: t, limits: extra.limits });

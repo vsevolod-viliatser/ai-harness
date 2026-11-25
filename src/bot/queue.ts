@@ -19,6 +19,7 @@ export async function enqueue(url: string, title: string, fresh = false): Promis
     const existing = s.tasks[id] && fresh ? { ...s.tasks[id], plan: undefined, phase: undefined, feedback: undefined } : s.tasks[id];
     const channel = await dmChannel(app.client);
     const thread = existing?.thread ?? { channel, ts: (await app.client.chat.postMessage({ channel, text: `Taking: <${url}|${title}>` })).ts! };
+    if (existing?.status === "offered") await say({ ...existing, thread }, "Taking it.");
     s.tasks[id] = { ...existing, url, title: title || existing?.title || url, status: "queued", thread, updatedAt: new Date().toISOString() };
     if (!s.queue.includes(id)) s.queue.push(id);
     saveState(s);

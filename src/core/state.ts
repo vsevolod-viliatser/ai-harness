@@ -3,6 +3,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { STATE } from "../config.ts";
 
 export type TaskStatus =
+    | "offered" // a task you wrote in the DM, waiting for you to press Take
     | "queued" // you pressed "Take", waiting for its turn
     | "running"
     | "pr" // a PR is open; the listener watches for your merge
