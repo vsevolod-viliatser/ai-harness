@@ -1,0 +1,8 @@
+{
+    // work/repo is the agents' own clone of the product repo: hide it so VS Code doesn't index a second
+    // copy (search, TS server, Source Control) next to your real one.
+    "files.exclude": { "work": true },
+    "search.exclude": { "work": true },
+    "files.watcherExclude": { "work/**": true },
+    "git.repositoryScanIgnoredFolders": ["work"]
+}

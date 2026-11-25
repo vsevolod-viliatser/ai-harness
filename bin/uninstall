@@ -1,0 +1,18 @@
+#!/bin/bash
+# Turns the harness off. Default: stop the launchd jobs only (code, clone and logs stay).
+#   bin/uninstall --all   also removes the Docker image and the keychain items.
+# Your own checkout of the product repo is never touched. Delete this folder yourself to remove the rest.
+set -uo pipefail
+
+for label in io.harness.morning io.harness.listener; do
+  launchctl bootout "gui/$(id -u)/$label" 2>/dev/null && echo "stopped $label"
+  rm -f "$HOME/Library/LaunchAgents/$label.plist"
+done
+
+if [ "${1:-}" = "--all" ]; then
+  docker rmi harness-box 2>/dev/null && echo "removed docker image"
+  for item in harness-claude harness-slack-bot harness-slack-app; do
+    security delete-generic-password -s "$item" >/dev/null 2>&1 && echo "removed keychain item $item"
+  done
+  echo "Left in place: this folder (rm -rf it to finish) and any agent/* branches and PRs on GitHub."
+fi

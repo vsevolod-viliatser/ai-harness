@@ -1,0 +1,24 @@
+#!/bin/bash
+# Run one command inside the agent box, against the harness's own clone of the product repo.
+#   bin/box claude -p "..."      bin/box bash -lc "npx tsc --noEmit"
+# The only secret that enters the box is the Claude subscription token (from the macOS keychain).
+set -euo pipefail
+
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+CLONE="$HERE/work/repo"
+
+CLAUDE_CODE_OAUTH_TOKEN=$(security find-generic-password -s harness-claude -w 2>/dev/null || true)
+export CLAUDE_CODE_OAUTH_TOKEN
+# The project's checks (project/config.json "checks"), one command per line, for harness-checks.
+HARNESS_CHECKS=$(node -e 'console.log(require(process.argv[1]).checks.join("\n"))' "$HERE/project/config.json")
+export HARNESS_CHECKS
+
+# `-e NAME` without a value copies it from this env, so the token never shows up in `ps`.
+# .git is mounted read-only: the agent can read history and diffs but can't plant hooks or config
+# that the Mac would later execute on `git commit` / `git push`.
+exec docker run --rm -i \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  -e CLAUDE_CODE_OAUTH_TOKEN -e HARNESS_CHECKS \
+  -v "$CLONE:/work" \
+  -v "$CLONE/.git:/work/.git:ro" \
+  harness-box "$@"

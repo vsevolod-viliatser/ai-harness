@@ -1,0 +1,16 @@
+{
+    "repo": "your-org/your-app",
+    "commitAs": { "name": "Your Name", "email": "you@example.com" },
+    "slackUserId": "U0123456789",
+    "notion": {
+        "tasks": "collection://<data source id of your tasks database>",
+        "me": "<your Notion user id>",
+        "skipTypes": ["Design", "Research"]
+    },
+    "checks": [
+        "npx tsc --noEmit",
+        "npm run -s test 2>&1 | tail -40"
+    ],
+    "coderCommands": ["npx tsc *", "npx eslint *", "npm run test *"],
+    "schemaPaths": ["^migrations/", "^prisma/"]
+}

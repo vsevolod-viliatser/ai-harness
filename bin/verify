@@ -1,0 +1,34 @@
+#!/bin/bash
+# Isolation check: the box can reach Claude and npm and run the project's checks, and nothing else.
+set -uo pipefail
+
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+fail=0
+ok()  { echo "OK    $1"; }
+bad() { echo "FAIL  $1"; fail=1; }
+
+# Host side: the pre-push hook refuses main/dev and accepts agent/*.
+echo "refs/heads/x 0 refs/heads/main 0" | "$HERE/hooks/pre-push" 2>/dev/null && bad "hook allows main" || ok "hook blocks main"
+echo "refs/heads/x 0 refs/heads/dev 0"  | "$HERE/hooks/pre-push" 2>/dev/null && bad "hook allows dev"  || ok "hook blocks dev"
+echo "refs/heads/x 0 refs/heads/agent/t 0" | "$HERE/hooks/pre-push" && ok "hook allows agent/*" || bad "hook blocks agent/*"
+[ "$(git -C "$HERE/work/repo" config core.hooksPath)" = "$HERE/hooks" ] && ok "clone uses harness hooks" || bad "clone hooksPath not set"
+
+# Box side.
+"$HERE/bin/box" bash -c '
+  ok()  { echo "OK    $1"; }
+  bad() { echo "FAIL  $1"; touch /tmp/failed; }
+  curl -s -m 5 -o /dev/null https://api.github.com    && bad "github reachable"    || ok "github blocked"
+  curl -s -m 5 -o /dev/null https://api.anthropic.com && ok "anthropic reachable"  || bad "anthropic blocked"
+  iptables -F 2>/dev/null && bad "agent can change the firewall" || ok "firewall locked"
+  ls -A /work | grep -qi "^\.env" && bad ".env file in clone" || ok "no .env in clone"
+  env | grep -iE "key|secret|token|database_url|password" | grep -qv "^CLAUDE_CODE_OAUTH_TOKEN=" \
+    && bad "unexpected secret in env" || ok "env clean"
+  touch /work/.git/probe 2>/dev/null && bad ".git writable" || ok ".git read-only"
+  cd /work
+  harness-checks >/dev/null 2>&1 && ok "project checks (project/config.json)" || bad "project checks"
+  out=$(claude -p "Reply with exactly the word: ok" --model haiku --tools "" </dev/null 2>&1)
+  echo "$out" | grep -qi "ok" && ok "claude -p via subscription" || bad "claude -p: $out"
+  [ ! -e /tmp/failed ]
+' || fail=1
+
+[ $fail = 0 ] && echo "verify: all checks passed" || { echo "verify: FAILED"; exit 1; }

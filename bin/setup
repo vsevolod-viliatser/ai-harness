@@ -1,0 +1,27 @@
+#!/bin/bash
+# One-time setup: build the box, make the harness's own clone of the product repo, install deps inside the box.
+# Safe to re-run. The clone is separate from your own checkout: no .env files, no shared state.
+# Needs project/config.json (copy project.example/ to project/ and fill it in).
+set -euo pipefail
+
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+CLONE="$HERE/work/repo"
+cfg() { node -e 'const c=require(process.argv[1]);console.log(process.argv[2].split(".").reduce((o,k)=>o[k],c))' "$HERE/project/config.json" "$1"; }
+REMOTE="https://github.com/$(cfg repo).git"
+
+chmod +x "$HERE"/bin/* "$HERE"/hooks/*
+
+docker build -t harness-box "$HERE/docker"
+
+if [ ! -d "$CLONE/.git" ]; then
+  mkdir -p "$HERE/work"
+  git clone "$REMOTE" "$CLONE"
+fi
+# Hooks come from the harness, not from the repo (husky would otherwise point at .husky/ in the clone).
+git -C "$CLONE" config core.hooksPath "$HERE/hooks"
+# The PRs' commits are signed as project/config.json "commitAs", not your global git identity.
+git -C "$CLONE" config user.name "$(cfg commitAs.name)"
+git -C "$CLONE" config user.email "$(cfg commitAs.email)"
+
+# Linux node_modules, built inside the box (Next/SWC/Prisma ship per-platform binaries).
+"$HERE/bin/box" npm ci

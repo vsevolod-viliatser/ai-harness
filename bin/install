@@ -1,0 +1,46 @@
+#!/bin/bash
+# Turns the harness on: two launchd jobs in ~/Library/LaunchAgents.
+#   io.harness.morning          weekdays 10:00 local time -> node src/morning.ts
+#   io.harness.listener        always on (restarted if it dies) -> node src/listener.ts
+# Re-run after moving the folder. bin/uninstall turns everything off again.
+set -euo pipefail
+
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+NODE=$(command -v node)
+AGENTS="$HOME/Library/LaunchAgents"
+mkdir -p "$AGENTS" "$HERE/logs"
+
+# launchd starts jobs with a bare PATH; node, docker, gh, git and claude live in Homebrew.
+PATH_FOR_JOBS="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+[ -f "$HERE/project/config.json" ] || { echo "missing project/config.json: copy project.example/ to project/ and fill it in"; exit 1; }
+security find-generic-password -s harness-slack-bot >/dev/null || { echo "missing keychain item harness-slack-bot"; exit 1; }
+security find-generic-password -s harness-slack-app >/dev/null || { echo "missing keychain item harness-slack-app"; exit 1; }
+
+weekdays=""
+for d in 1 2 3 4 5; do
+  weekdays+="<dict><key>Weekday</key><integer>$d</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>"
+done
+
+write() { # label, script, extra plist keys
+  cat > "$AGENTS/$1.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>$1</string>
+  <key>ProgramArguments</key><array><string>$NODE</string><string>$HERE/$2</string></array>
+  <key>WorkingDirectory</key><string>$HERE</string>
+  <key>EnvironmentVariables</key><dict><key>PATH</key><string>$PATH_FOR_JOBS</string></dict>
+  <key>StandardOutPath</key><string>$HERE/logs/$(basename "$2" .ts).log</string>
+  <key>StandardErrorPath</key><string>$HERE/logs/$(basename "$2" .ts).log</string>
+  $3
+</dict></plist>
+EOF
+  launchctl bootout "gui/$(id -u)/$1" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "$AGENTS/$1.plist"
+  echo "installed $1"
+}
+
+write io.harness.morning src/morning.ts "<key>StartCalendarInterval</key><array>$weekdays</array>"
+write io.harness.listener src/listener.ts "<key>RunAtLoad</key><true/><key>KeepAlive</key><true/>"
+echo "Logs: $HERE/logs/morning.log, $HERE/logs/listener.log"

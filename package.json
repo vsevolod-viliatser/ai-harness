@@ -1,0 +1,22 @@
+{
+    "name": "harness",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "task": "node src/cli.ts",
+        "bot": "node src/listener.ts",
+        "morning": "node src/morning.ts",
+        "typecheck": "tsc --noEmit",
+        "verify": "bin/verify"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.0",
+        "typescript": "^5.9.0"
+    },
+    "dependencies": {
+        "@slack/bolt": "^4.7.3",
+        "@slack/web-api": "^7.19.0"
+    },
+    "description": "Notion tasks -> Slack buttons -> Claude agents in a locked-down Docker box -> draft PRs you review.",
+    "license": "MIT"
+}

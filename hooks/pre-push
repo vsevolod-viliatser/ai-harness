@@ -1,0 +1,14 @@
+#!/bin/bash
+# The harness clone may push only to agent/* branches. main deploys prod and migrates the prod DB,
+# dev deploys dev; neither is ever a harness target. Lives outside the clone (core.hooksPath), so the
+# agent, which can write the clone's files, can't edit or delete it.
+set -euo pipefail
+
+status=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/agent/*) ;;
+    *) echo "pre-push: refusing to push to $remote_ref (harness pushes only to agent/*)" >&2; status=1 ;;
+  esac
+done
+exit $status

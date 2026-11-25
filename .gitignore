@@ -1,0 +1,12 @@
+# The agents' clone of the product repo (has its own git; ~2 GB with node_modules)
+work/
+# Per-run output and local state
+logs/
+plans/
+state.json
+node_modules/
+.DS_Store
+tasks/
+# What belongs to one product: repo, Notion ids, checks, rules (template: project.example/)
+project/
+state.json.tmp
