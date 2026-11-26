@@ -138,8 +138,9 @@ async function report(id: string, t: TaskState, resultFile: string, args: string
         update(id, { status: "questions" });
         await say(t, `I need some answers. Reply in this thread and I'll rerun the task:\n${(r.questions ?? []).map((q) => `• ${q}`).join("\n")}`);
     } else if (r.verdict === "needs_human") {
-        update(id, { status: "stopped" });
-        await say(t, `This one needs you: ${r.reason ?? ""}`);
+        // Often the missing piece is something you can just write here (what a screenshot shows, what the daily decided).
+        update(id, { status: "questions" });
+        await say(t, `This one needs you: ${r.reason ?? ""}\nReply here with what is missing and I'll rerun the task.`);
     } else {
         update(id, { status: revising ? "pr" : "stopped" });
         await say(t, `Stopped: ${outcome}${logLine}`);
